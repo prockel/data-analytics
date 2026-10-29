@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from pathlib import Path
+import re
 from urllib.parse import urlparse
 
 import requests
@@ -32,7 +33,11 @@ def completed_patches(versions, current_patch, limit):
     Only versions strictly older than the confirmed live patch can be chosen.
     """
     current = tuple(map(int, patch_of(current_patch).split(".")))
-    patches = {patch_of(v) for v in versions}
+    patches = {
+        patch_of(v)
+        for v in versions
+        if isinstance(v, str) and re.fullmatch(r"\d+\.\d+(?:\.\d+)*", v)
+    }
     if patch_of(current_patch) not in patches:
         raise APIError("Confirmed live patch is absent from Data Dragon. Use the internal gameVersion major.minor, not the marketing season label.")
     return sorted((p for p in patches if tuple(map(int, p.split("."))) < current),

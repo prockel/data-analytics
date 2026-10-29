@@ -1,0 +1,71 @@
+{
+  "audit": {
+    "candidate_manifest_sha256": "b428abc7b01bc15157533f5433f0b6db6ecbdff86978641c2dee61b44284ab55",
+    "candidate_patches": [
+      "16.20"
+    ],
+    "patches": {
+      "16.20": {
+        "eligible_by_cell": {
+          "Diamond\u2013Master/BOTTOM": 23,
+          "Diamond\u2013Master/JUNGLE": 13,
+          "Diamond\u2013Master/MIDDLE": 12,
+          "Diamond\u2013Master/TOP": 22,
+          "Diamond\u2013Master/UTILITY": 13,
+          "Grandmaster\u2013Challenger/BOTTOM": 14,
+          "Grandmaster\u2013Challenger/JUNGLE": 5,
+          "Grandmaster\u2013Challenger/MIDDLE": 8,
+          "Grandmaster\u2013Challenger/TOP": 5,
+          "Grandmaster\u2013Challenger/UTILITY": 2,
+          "Iron\u2013Emerald/BOTTOM": 6,
+          "Iron\u2013Emerald/JUNGLE": 3,
+          "Iron\u2013Emerald/MIDDLE": 2,
+          "Iron\u2013Emerald/TOP": 7,
+          "Iron\u2013Emerald/UTILITY": 2
+        },
+        "eligible_by_group": {
+          "Diamond\u2013Master": 83,
+          "Grandmaster\u2013Challenger": 34,
+          "Iron\u2013Emerald": 20
+        },
+        "exclusions": {
+          "different_patch": 363
+        },
+        "sufficient": true
+      }
+    },
+    "sampled_players": {
+      "Diamond\u2013Master": 10,
+      "Grandmaster\u2013Challenger": 10,
+      "Iron\u2013Emerald": 10
+    },
+    "seed_pool_sizes": {
+      "Diamond\u2013Master": 10820,
+      "Grandmaster\u2013Challenger": 1000,
+      "Iron\u2013Emerald": 4920
+    },
+    "unique_candidate_matches": 500
+  },
+  "completed_at": "2026-10-29T04:19:50.975959+00:00",
+  "config": {
+    "current_patch": "16.21",
+    "end_time": 1793246210,
+    "league_pages": 1,
+    "lookback_days": 42,
+    "matches_per_player": 20,
+    "max_matches_per_group": 100,
+    "min_matches_per_cell": 1,
+    "min_matches_per_group": 1,
+    "patch_candidates": 1,
+    "patch_source": "https://www.leagueoflegends.com/en-us/news/game-updates/league-of-legends-patch-26-21-notes/",
+    "platform": "na1",
+    "players_per_group": 10,
+    "schema_version": 1,
+    "seed": 20261028,
+    "start_time": 1789617410
+  },
+  "run_id": "204395aef6dd58c82454",
+  "selected_patch": "16.20",
+  "started_at": "2026-10-29T04:04:17.826574+00:00",
+  "status": "complete"
+}
