@@ -21,6 +21,17 @@ def config():
 
 
 class CollectionTests(unittest.TestCase):
+    def test_legacy_datadragon_versions_are_skipped_without_losing_numeric_order(self):
+        # Official catalogs can include historical labels rather than versions.
+        # Previously patch_of('lolpatch_3.7') aborted the entire collection.
+        versions = ["16.21.1", "lolpatch_3.7", "16.9.1", "lolpatch_3.6",
+                    "16.20.2", "16.10.1", "16.20.1", "16.22.1", "", None]
+        self.assertEqual(completed_patches(versions, "16.21", 3),
+                         ["16.20", "16.10", "16.9"])
+        self.assertEqual(completed_patches(versions, "16.21", 1), ["16.20"])
+        with self.assertRaises(APIError):
+            completed_patches(["lolpatch_3.7", "16.20.1"], "16.21", 1)
+
     def test_patch_selection_no_current_or_future(self):
         self.assertEqual(completed_patches(["16.21.1", "16.20.3", "16.20.2", "16.19.1", "16.22.1"], "16.21", 2),
                          ["16.20", "16.19"])

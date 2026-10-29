@@ -1,9 +1,20 @@
-# Observed results
+# Exploratory pilot results
 
 Run `204395aef6dd58c82454` · patch **16.20** · platform **NA1**.
 Collection: 2026-10-29T04:04:17.826574+00:00 through 2026-10-29T04:19:50.975959+00:00 (UTC).
 
-Analyzed **137 unique eligible matches**. These are associations in a ladder-seeded convenience sample.
+Analyzed **137 unique eligible matches** from a ladder-seeded convenience sample
+collected locally. Thirty anchor players were sampled: ten per current-rank group.
+The resulting match counts are 20 Iron–Emerald, 83 Diamond–Master, and
+34 Grandmaster–Challenger. These groups describe **the sampled anchor player's
+current rank at collection**, not the first-blood killer's historical rank or an
+average lobby rank.
+
+This pilot used completion minimums of **one match per group and one per cell**,
+not the CLI defaults of 100 per group and ten per cell. `complete` in the manifest
+means those pilot settings were met; it does not establish statistical adequacy.
+Nine of fifteen cells have fewer than ten games. These are exploratory descriptive
+estimates, not representative population estimates or significance findings.
 
 | Anchor rank group | First-blood role | Games | Wins | Win rate | 95% Wilson CI |
 |---|---|---:|---:|---:|---|
@@ -29,4 +40,17 @@ Analyzed **137 unique eligible matches**. These are associations in a ladder-see
 
 See `interaction_contrasts.csv` for exploratory role-versus-TOP differences between rank groups.
 Individual CI overlap is not a test of interaction. Contrast intervals are unadjusted Wald approximations;
-they do not account for repeated players or multiple comparisons. No causal interpretation is supported.
+they do not account for repeated players or multiple comparisons. Sparse or
+all-win/all-loss cells can make the Wald approximations unreliable. In particular,
+the Diamond–Master MIDDLE contrast's interval excluding zero is not interpreted
+as a validated significance finding. Contrast values are probability differences,
+not win probabilities. No statistically significant rank/role differences or
+causal effects are claimed.
+
+The 0/2 cells have Wilson upper bounds of 65.8%; their observed 0% rates do not
+imply a zero underlying probability. Likewise, Grandmaster–Challenger TOP's 80%
+rate comes from only 4/5 wins (95% Wilson CI 37.6%–96.4%). See the
+[project README](../README.md) for sampling, cleaning, and interpretation limits.
+The aggregate CSVs and manifest are committed; private match records and SQLite
+are not included, so this review checks aggregate consistency rather than
+independently revalidating individual games.
