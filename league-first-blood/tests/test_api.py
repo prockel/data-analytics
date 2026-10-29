@@ -84,3 +84,53 @@ class APITests(unittest.TestCase):
             self.client.get("untrusted.example", "/test")
         with self.assertRaises(APIError):
             RiotClient("", Path(self.temp.name))
+
+    def test_exhausted_retry_after_survives_restart_and_new_key(self):
+        import json
+        import time
+        state = Path(self.temp.name) / 'rate-limit.json'
+        self.session.get.return_value = response(429, headers={'Retry-After': '600'})
+        old = RiotClient('synthetic-old', Path(self.temp.name), attempts=1,
+                         session=self.session, sleep=lambda _: None, state_path=state)
+        with self.assertRaises(APIError):
+            old.get('na1.api.riotgames.com', '/limited')
+        saved = json.loads(state.read_text())
+        self.assertGreater(saved['not_before_utc'], time.time() + 599)
+        self.assertNotIn('synthetic-old', state.read_text())
+        sleeps = []
+        self.session.get.return_value = response()
+        renewed = RiotClient('synthetic-renewed', Path(self.temp.name), session=self.session,
+                             sleep=sleeps.append, state_path=state)
+        renewed.get('na1.api.riotgames.com', '/limited')
+        self.assertGreater(max(sleeps), 599)
+        self.assertEqual(self.session.get.call_args.kwargs['headers']['X-Riot-Token'], 'synthetic-renewed')
+
+    def test_method_limit_wait_and_restart_guard(self):
+        import json
+        import time
+        state = Path(self.temp.name) / 'rate-limit.json'
+        self.session.get.return_value = response(headers={'X-Method-Rate-Limit': '1:300',
+                                                           'X-Method-Rate-Limit-Count': '1:300'})
+        client = RiotClient('synthetic-binding', Path(self.temp.name), session=self.session,
+                            sleep=self.sleeps.append, state_path=state)
+        client.get('na1.api.riotgames.com', '/one')
+        client.get('na1.api.riotgames.com', '/two')
+        self.assertGreater(max(self.sleeps), 299)
+        self.assertGreater(json.loads(state.read_text())['not_before_utc'], time.time() + 299)
+
+    def test_http_date_retry_after_and_invalid_state(self):
+        import time
+        from email.utils import formatdate
+        self.assertGreater(RiotClient._retry_after(formatdate(time.time() + 600, usegmt=True)), 598)
+        self.assertEqual(RiotClient._retry_after('invalid'), 0)
+        self.assertEqual(RiotClient._retry_after('NaN'), 0)
+        state = Path(self.temp.name)/'rate-limit.json'
+        state.write_text('not json')
+        with self.assertRaisesRegex(APIError, 'Invalid saved rate-limit state'):
+            RiotClient('synthetic-binding', Path(self.temp.name), state_path=state)
+
+    def test_request_setup_errors_do_not_expose_header_values(self):
+        self.session.get.side_effect = requests.exceptions.InvalidHeader('sensitive header value')
+        with self.assertRaises(APIError) as caught:
+            self.client.get('na1.api.riotgames.com', '/test')
+        self.assertNotIn('sensitive', str(caught.exception))

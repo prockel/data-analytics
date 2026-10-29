@@ -33,6 +33,17 @@ CREATE INDEX IF NOT EXISTS matches_patch ON matches(patch);
 
 
 @contextmanager
+def read_database(path):
+    """Read without initializing schemas or touching a pilot database."""
+    con = sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True)
+    con.row_factory = sqlite3.Row
+    try:
+        yield con
+    finally:
+        con.close()
+
+
+@contextmanager
 def database(path):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)

@@ -152,6 +152,12 @@ assess dependence and sensitivity before making stronger comparisons.
 
 ## Explore or reproduce
 
+For a separate collection targeting approximately 5,000 matches, use the
+[macOS start, monitor, and resume guide](docs/large-collection.md). Its opt-in
+`collect-large` mode freezes manifests and checkpoints results incrementally.
+The pilot commands below retain their original behavior and outputs; no large
+collection has been launched by this change.
+
 The committed reports and charts can be read without a Riot key. Source and
 outputs are organized as follows:
 
