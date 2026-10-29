@@ -7,15 +7,19 @@ A reproducible Python → Riot API → SQLite → SQL/pandas → notebook and ch
 portfolio project for ranked solo/duo Summoner's Rift. Each eligible match contributes
 **one observation**: the first-blood killer's role and whether that killer's team won.
 
-> **Research status: awaiting live collection.** The implementation and offline
-> validation are available. A Riot API key was not available during development;
-> no match records or empirical results have been fabricated. The exact study
-> patch and collection dates will be recorded by the first successful live run.
+> **Research status: upstream access blocked.** A Riot HTTPS secret is now
+> configured, with a runtime binding for the allowed Riot hosts. The live check
+> at **2026-10-29 03:36 UTC** received a **Cloudflare HTML block page (HTTP 403)**,
+> rather than a Riot JSON API response. The key's validity remains unverified.
+> No matches, empirical results, or charts have been fabricated. The exact study
+> patch and collection dates remain unset until a successful live collection.
 
 ## Findings and visualizations
 
 [Observed findings / current collection status](reports/findings.md) is the
 canonical results page. There are currently **no empirical findings or charts**.
+[The sanitized authentication check](reports/authentication.json) records the
+actual network outcome without credentials, raw HTML, or player identifiers.
 After collection, the same page contains all fifteen estimates, sample sizes,
 95% intervals, exact patch, collection timestamps, and these generated figures:
 
@@ -188,11 +192,49 @@ cp .env.example .env
 chmod 600 .env
 ```
 
-Alternatively bind `RIOT_API_KEY` securely in environment settings. An existing
-process variable takes precedence over `.env`. Never put a real key on a command
-line, in a notebook cell, or in Git. Required HTTPS destinations are
+Alternatively configure `RIOT_API_KEY` as an HTTPS secret in environment
+settings, with the target variable named `RIOT_API_KEY` and the Riot destinations
+below. In this cloud environment the runtime variable can be an **opaque binding**
+that the HTTPS proxy substitutes on those destinations. It need not be a raw
+API key. Forward the binding unchanged in `X-Riot-Token` through the provided
+HTTPS proxy; do not inspect its format, extract a secret from proxy storage, or
+reject it merely because it looks like a placeholder. A process variable takes
+precedence over `.env`. Never put a real key on a command line, in a notebook
+cell, or in Git. Required HTTPS destinations are
 `ddragon.leagueoflegends.com`, the selected platform's `*.api.riotgames.com`
 host, and its regional match host (NA1→americas, EUW1→europe, KR→asia).
+
+### Verify authentication before collecting
+
+```bash
+firstblood auth-check --platform na1 --output reports/authentication.json
+```
+
+This makes an **uncached** request to the authenticated League-v4 Challenger
+endpoint, checks its response schema, and emits only safe diagnostic fields.
+It never prints the binding, headers, response body, or player identifiers.
+Exit code 0 means authentication was verified; 1 means it remains unverified.
+The command does not equate an HTML/proxy denial with an expired key.
+
+**Observed blocker (2026-10-29 UTC):** the NA1 authenticated League request and
+NA1/EUW1 status checks received HTTP 403 Cloudflare pages containing “Sorry,
+you have been blocked.” Data Dragon and GitHub API controls returned HTTP 200.
+The environment configuration reports unrestricted network access, a saved
+`RIOT_API_KEY` binding, and the correct Riot destination hosts. This is not
+evidence that the key is missing or invalid; a Riot authentication response
+has not been obtained.
+
+**Required next change:** arrange a network/egress path that Riot's upstream
+protection permits, or request an access review/allowlisting of the cloud egress
+through the environment provider and Riot. Adding the already-configured binding
+or repeating the same requests will not diagnose this denial further. Do not
+bypass Cloudflare or disable TLS verification. After a routing/access change,
+rerun `auth-check`. If it then returns a **Riot JSON** 401/403, renew or authorize
+the existing key binding. No duplicate secret requirement is needed now.
+
+If a different runtime supplies no binding at all, configure the HTTPS secret's
+**target environment variable** and allowed Riot hostnames, then reconnect/apply
+the environment settings. Do not paste the secret into chat or code.
 
 ### 3. Collect a frozen sample
 
@@ -280,7 +322,8 @@ python -m pip check
 firstblood --help
 ```
 
-Tests cover killer-team/winner mapping, rank boundaries, patch/mode filtering,
+Tests cover upstream-versus-Riot authentication failures, opaque proxy binding handling,
+credential-safe diagnostics, killer-team/winner mapping, rank boundaries, patch/mode filtering,
 role ambiguity, remakes, malformed and tied first kills, retries, rate-limit
 handling, credential-safe errors, deterministic sampling and shared-match anchor
 assignment, pagination, SQL deduplication/integrity, run-specific rank labels,

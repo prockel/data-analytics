@@ -19,12 +19,23 @@ import requests
 class APIError(RuntimeError):
     """A safe-to-display upstream error."""
 
+    def __init__(self, message, *, kind="api_error", status_code=None, evidence=None):
+        super().__init__(message)
+        self.kind = kind
+        self.status_code = status_code
+        # Only explicitly selected booleans, never headers or response bodies.
+        self.evidence = evidence or {}
+
 
 class RiotClient:
     def __init__(self, key: str, cache: Path, *, attempts=6, session=None,
                  sleep=time.sleep, rng=None):
         if not key or key == "replace_with_your_riot_api_key":
-            raise APIError("RIOT_API_KEY is missing. Set it securely or use an ignored .env file.")
+            raise APIError(
+                "RIOT_API_KEY has no runtime binding. Configure the HTTPS secret's "
+                "target variable or use an ignored local .env; never expose its value.",
+                kind="credential_binding_missing",
+            )
         self.session = session or requests.Session()
         self.key = key
         self.cache = Path(cache)
@@ -58,7 +69,31 @@ class RiotClient:
                 self.sleep(min(60, 2 ** attempt) + self.rng.random())
                 continue
             if response.status_code in (401, 403):
-                raise APIError("Riot rejected authentication/access (401/403); renew or authorize the key.")
+                try:
+                    error_body = response.json()
+                    riot_error = (isinstance(error_body, dict)
+                                  and isinstance(error_body.get("status"), dict)
+                                  and error_body["status"].get("status_code") == response.status_code)
+                except ValueError:
+                    riot_error = False
+                if riot_error:
+                    raise APIError(
+                        "Riot rejected authentication/access (401/403); renew or authorize the key.",
+                        kind="riot_authentication_or_access_denied", status_code=response.status_code,
+                    )
+                content_type = response.headers.get("Content-Type", "").lower()
+                text = response.text.lower() if isinstance(response.text, str) else ""
+                cloudflare = "sorry, you have been blocked" in text and "cloudflare" in text
+                raise APIError(
+                    f"HTTPS upstream returned non-Riot HTTP {response.status_code}"
+                    + (" (Cloudflare block page)" if cloudflare else "")
+                    + ". Authentication could not be verified. Resolve upstream/egress access "
+                      "before treating the key as invalid.",
+                    kind="upstream_access_denied", status_code=response.status_code,
+                    evidence={"html_response": "text/html" in content_type,
+                              "cloudflare_block_page": cloudflare,
+                              "upstream_error_header_present": "x-at-upstream-error" in response.headers},
+                )
             if response.status_code == 429 or 500 <= response.status_code < 600:
                 if attempt + 1 == self.attempts:
                     raise APIError(f"Riot HTTP {response.status_code}: exhausted retries")

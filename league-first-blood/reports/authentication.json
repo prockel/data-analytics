@@ -1,0 +1,17 @@
+{
+  "authentication_verified": false,
+  "cache_used": false,
+  "checked_at_utc": "2026-10-29T03:36:25.489209+00:00",
+  "credential_binding_present": true,
+  "endpoint": "/lol/league/v4/challengerleagues/by-queue/RANKED_SOLO_5x5",
+  "evidence": {
+    "cloudflare_block_page": true,
+    "html_response": true,
+    "upstream_error_header_present": true
+  },
+  "host": "na1.api.riotgames.com",
+  "http_status": 403,
+  "message": "HTTPS upstream returned non-Riot HTTP 403 (Cloudflare block page). Authentication could not be verified. Resolve upstream/egress access before treating the key as invalid.",
+  "outcome": "upstream_access_denied",
+  "platform": "na1"
+}

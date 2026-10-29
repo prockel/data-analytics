@@ -36,6 +36,10 @@ def positive(value):
 def parser():
     root = argparse.ArgumentParser(description=__doc__)
     subs = root.add_subparsers(dest="command", required=True)
+    auth = subs.add_parser("auth-check", help="Verify a live HTTPS credential binding without exposing it")
+    auth.add_argument("--platform", choices=ROUTES, default="na1")
+    auth.add_argument("--cache", type=Path, default=Path("data/raw"))
+    auth.add_argument("--output", type=Path, help="Write sanitized diagnostic JSON (no response body or key)")
     c = subs.add_parser("collect", help="Collect a versioned official Riot API sample")
     c.add_argument("--db", type=Path, default=Path("data/firstblood.sqlite"))
     c.add_argument("--cache", type=Path, default=Path("data/raw"))
@@ -66,7 +70,16 @@ def main(argv=None):
     # Explicit local path, with process environment taking precedence.
     load_dotenv(Path.cwd() / ".env", override=False)
     try:
-        if args.command == "collect":
+        if args.command == "auth-check":
+            from .auth import authentication_report
+            report = authentication_report(os.environ.get("RIOT_API_KEY", ""), args.cache, args.platform)
+            rendered = json.dumps(report, indent=2, sort_keys=True) + "\n"
+            if args.output:
+                args.output.parent.mkdir(parents=True, exist_ok=True)
+                args.output.write_text(rendered)
+            print(rendered, end="")
+            return 0 if report["authentication_verified"] else 1
+        elif args.command == "collect":
             validate_source(args.patch_source)
             if args.current_patch != patch_of(args.current_patch):
                 raise ValueError("--current-patch must be major.minor")

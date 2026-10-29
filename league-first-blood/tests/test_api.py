@@ -9,7 +9,9 @@ from firstblood.api import APIError, RiotClient
 
 
 def response(code=200, body=None, headers=None):
-    return Mock(status_code=code, headers=headers or {}, json=Mock(return_value=body or {"ok": True}))
+    if body is None:
+        body = {"status": {"status_code": code}} if code in (401, 403) else {"ok": True}
+    return Mock(status_code=code, headers=headers or {}, json=Mock(return_value=body), text="")
 
 
 class APITests(unittest.TestCase):
@@ -44,7 +46,26 @@ class APITests(unittest.TestCase):
         with self.assertRaisesRegex(APIError, "401/403") as caught:
             self.client.get("na1.api.riotgames.com", "/test")
         self.assertNotIn("synthetic-test-credential", str(caught.exception))
+        self.assertEqual(caught.exception.kind, "riot_authentication_or_access_denied")
         self.assertEqual(self.session.get.call_count, 1)
+
+    def test_cloudflare_html_denial_is_not_an_invalid_key(self):
+        blocked = response(403, headers={"Content-Type": "text/html", "x-at-upstream-error": "true"})
+        blocked.json.side_effect = ValueError("not JSON")
+        blocked.text = "<html>Cloudflare: Sorry, you have been blocked. synthetic-test-credential</html>"
+        self.session.get.return_value = blocked
+        with self.assertRaisesRegex(APIError, "Authentication could not be verified") as caught:
+            self.client.get("na1.api.riotgames.com", "/test")
+        self.assertEqual(caught.exception.kind, "upstream_access_denied")
+        self.assertTrue(caught.exception.evidence["cloudflare_block_page"])
+        self.assertNotIn("synthetic-test-credential", str(caught.exception))
+        self.assertEqual(self.session.get.call_count, 1)
+
+    def test_non_riot_json_denial_remains_unverified(self):
+        self.session.get.return_value = response(403, body={"error": "upstream denied"})
+        with self.assertRaises(APIError) as caught:
+            self.client.get("na1.api.riotgames.com", "/test")
+        self.assertEqual(caught.exception.kind, "upstream_access_denied")
 
     def test_network_retry_exhaustion(self):
         self.session.get.side_effect = requests.Timeout("sensitive upstream error")
