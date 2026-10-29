@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from .storage import database, run_config
+from .storage import read_database, run_config
 from .transform import GROUPS, ROLES
 
 
@@ -100,7 +100,11 @@ def make_charts(summary, directory, subtitle):
 
 
 def analyze(db_path, run_id, output):
-    with database(db_path) as con:
+    output = Path(output)
+    existing_manifest = output / "collection.json"
+    if existing_manifest.exists() and json.loads(existing_manifest.read_text()).get("run_id") != run_id:
+        raise ValueError("Output directory belongs to another run; use a separate report directory")
+    with read_database(db_path) as con:
         run, config = run_config(con, run_id)
         if run["status"] != "complete":
             raise ValueError("Analysis requires a completed, sufficiently sampled live collection run")
